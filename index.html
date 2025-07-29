@@ -27,7 +27,7 @@
             --color-finished-border: #003C3C; /* Dark Teal */
             --color-inactive-bg: #e5e7eb;
 
-            /* --- NEW: Order-specific Colors --- */
+            /* Order-specific Colors */
             --order-1-bg: #FEF3C7; /* Amber 100 */
             --order-1-border: #FBBF24; /* Amber 400 */
             --order-2-bg: #DBEAFE; /* Blue 200 */
@@ -115,8 +115,8 @@
             border: 2px solid rgba(0,0,0,0.1);
         }
 
-        /* --- NEW: Completion Animation --- */
-        #completion-animation.show {
+        /* --- Animations --- */
+        .animation-popup.show {
             display: flex;
             animation: fade-in-out 2.5s ease-in-out forwards;
         }
@@ -229,9 +229,12 @@
         </div>
     </div>
 
-    <!-- NEW: Completion Animation Container -->
-    <div id="completion-animation" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-[100]">
+    <!-- Animation Containers -->
+    <div id="completion-animation" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-[100] animation-popup">
         <div id="completion-text" class="text-white text-5xl font-bold p-12 bg-green-500 rounded-2xl shadow-2xl transform"></div>
+    </div>
+    <div id="new-order-animation" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-[100] animation-popup">
+        <div class="text-white text-5xl font-bold p-12 bg-yellow-400 rounded-2xl shadow-2xl transform">New order set</div>
     </div>
 
 
@@ -240,39 +243,61 @@
             const binsGrid = document.getElementById('bins-grid');
             const modal = document.getElementById('pickup-modal');
             const orderLegend = document.getElementById('order-legend');
+            const mainDoneBtn = document.getElementById('main-done-btn');
             let currentSelectedItem = null;
             
-            const orderData = {
-                "ORD-A1B2": { colorClass: 'order-1', name: "Order A1B2", items: 0, picked: 0 },
-                "ORD-C3D4": { colorClass: 'order-2', name: "Order C3D4", items: 0, picked: 0 },
-                "ORD-E5F6": { colorClass: 'order-3', name: "Order E5F6", items: 0, picked: 0 },
-            };
+            let orderData = {};
+            let binData = [];
 
-            const binData = [
-                { id: '1.1.1.', type: 'empty' },
-                { id: '2.1.1.', type: '2-compartment', items: [{ compartment: 0, orderId: "ORD-A1B2" }] },
-                { id: '3.1.1.', type: '1-compartment', items: [{ compartment: 0, orderId: "ORD-C3D4" }] },
-                { id: '4.1.1.', type: '4-compartment', items: [
-                    { compartment: 0, orderId: "ORD-A1B2" }, 
-                    { compartment: 1, orderId: "ORD-C3D4" }, 
-                    { compartment: 2, orderId: "ORD-E5F6" }, 
-                    { compartment: 3, orderId: "ORD-A1B2" }
-                ] },
-                { id: '5.1.1.', type: '1-compartment', items: [{ compartment: 0, orderId: "ORD-E5F6", initialState: 'selected' }] },
-                { id: '6.1.1.', type: 'empty' },
-                { id: '7.1.1.', type: '2-compartment', items: [
-                    { compartment: 0, orderId: "ORD-C3D4" }, 
-                    { compartment: 1, orderId: "ORD-E5F6" }
-                ] },
-                { id: '8.1.1.', type: 'empty' },
-                { id: '9.1.1.', type: '1-compartment', items: [{ compartment: 0, orderId: "ORD-A1B2", initialState: 'finished' }] },
-                { id: '10.1.1.', type: 'empty' },
-                { id: '11.1.1.', type: '4-compartment', items: [
-                    { compartment: 1, orderId: "ORD-C3D4" }, 
-                    { compartment: 2, orderId: "ORD-E5F6" }
-                ] },
-                { id: '12.1.1.', type: 'empty' },
-            ];
+            function generateInitialData() {
+                orderData = {
+                    "ORD-A1B2": { colorClass: 'order-1', name: "Order A1B2", items: 0, picked: 0 },
+                    "ORD-C3D4": { colorClass: 'order-2', name: "Order C3D4", items: 0, picked: 0 },
+                    "ORD-E5F6": { colorClass: 'order-3', name: "Order E5F6", items: 0, picked: 0 },
+                };
+                binData = [
+                    { id: '1.1.1.', type: 'empty' }, { id: '2.1.1.', type: '2-compartment', items: [{ compartment: 0, orderId: "ORD-A1B2" }] }, { id: '3.1.1.', type: '1-compartment', items: [{ compartment: 0, orderId: "ORD-C3D4" }] }, { id: '4.1.1.', type: '4-compartment', items: [ { compartment: 0, orderId: "ORD-A1B2" }, { compartment: 1, orderId: "ORD-C3D4" }, { compartment: 2, orderId: "ORD-E5F6" }, { compartment: 3, orderId: "ORD-A1B2" } ] }, { id: '5.1.1.', type: '1-compartment', items: [{ compartment: 0, orderId: "ORD-E5F6", initialState: 'selected' }] }, { id: '6.1.1.', type: 'empty' }, { id: '7.1.1.', type: '2-compartment', items: [ { compartment: 0, orderId: "ORD-C3D4" }, { compartment: 1, orderId: "ORD-E5F6" } ] }, { id: '8.1.1.', type: 'empty' }, { id: '9.1.1.', type: '1-compartment', items: [{ compartment: 0, orderId: "ORD-A1B2", initialState: 'finished' }] }, { id: '10.1.1.', type: 'empty' }, { id: '11.1.1.', type: '4-compartment', items: [ { compartment: 1, orderId: "ORD-C3D4" }, { compartment: 2, orderId: "ORD-E5F6" } ] }, { id: '12.1.1.', type: 'empty' },
+                ];
+            }
+            
+            function generateNewWave() {
+                // 1. Generate new random orders
+                orderData = {};
+                const newOrderColors = ['order-1', 'order-2', 'order-3'];
+                for (let i = 0; i < 3; i++) {
+                    const randomId = `ORD-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+                    orderData[randomId] = { colorClass: newOrderColors[i], name: `Order ${randomId}`, items: 0, picked: 0 };
+                }
+                const newOrderIds = Object.keys(orderData);
+
+                // 2. Generate new random bin configurations
+                binData = [];
+                const binTypes = ['1-compartment', '2-compartment', '4-compartment', 'empty'];
+                for (let i = 1; i <= 12; i++) {
+                    const binLocationId = `${i}.1.1.`;
+                    const randomType = binTypes[Math.floor(Math.random() * binTypes.length)];
+                    const newBin = { id: binLocationId, type: randomType, items: [] };
+
+                    if (randomType !== 'empty') {
+                        let compartmentCount = 0;
+                        if (randomType === '1-compartment') compartmentCount = 1;
+                        if (randomType === '2-compartment') compartmentCount = 2;
+                        if (randomType === '4-compartment') compartmentCount = 4;
+
+                        for (let j = 0; j < compartmentCount; j++) {
+                            // 50% chance to place an item in a compartment
+                            if (Math.random() > 0.5) {
+                                const randomOrderId = newOrderIds[Math.floor(Math.random() * newOrderIds.length)];
+                                newBin.items.push({ compartment: j, orderId: randomOrderId });
+                            }
+                        }
+                    }
+                    binData.push(newBin);
+                }
+                
+                // 3. Re-initialize the app with new data
+                initializeApp();
+            }
             
             function getIconSvg() {
                 return `<svg class="icon icon-finished" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
@@ -303,6 +328,7 @@
                 orderLegend.innerHTML = '';
                 Object.keys(orderData).forEach(orderId => {
                     const order = orderData[orderId];
+                    if (!order) return;
                     const legendItem = document.createElement('div');
                     const isComplete = order.items > 0 && order.picked === order.items;
                     
@@ -322,32 +348,32 @@
             function checkAllTasksFinished() {
                 const allSelectableItems = document.querySelectorAll('.selectable-item');
                 const allFinishedItems = document.querySelectorAll('.item-finished');
-                const mainDoneBtn = document.getElementById('main-done-btn');
-
+                
                 if (allSelectableItems.length > 0 && allSelectableItems.length === allFinishedItems.length) {
                     mainDoneBtn.disabled = false;
                     mainDoneBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
                     mainDoneBtn.classList.add('bg-green-500', 'hover:bg-green-600');
+                    mainDoneBtn.textContent = 'Done';
                 } else {
                     mainDoneBtn.disabled = true;
                     mainDoneBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
                     mainDoneBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                    mainDoneBtn.textContent = 'Done';
                 }
             }
             
-            // --- NEW: Function to show completion animation ---
-            function showCompletionAnimation(orderId) {
-                const animationContainer = document.getElementById('completion-animation');
-                const animationText = document.getElementById('completion-text');
+            function showAnimation(type, text) {
+                const animationContainer = document.getElementById(type);
+                const animationText = animationContainer.querySelector('div');
                 
-                animationText.textContent = `Order ${orderId} Complete!`;
+                if(text) animationText.textContent = text;
                 animationContainer.classList.add('show');
                 animationContainer.classList.remove('hidden');
 
                 setTimeout(() => {
                     animationContainer.classList.remove('show');
                     animationContainer.classList.add('hidden');
-                }, 2400); // Should be slightly less than animation duration
+                }, 2400); 
             }
 
             function openPickupModal(item) {
@@ -456,11 +482,9 @@
                 
                 orderData[orderId].picked++;
                 
-                // --- MODIFIED: Check for order completion ---
                 const order = orderData[orderId];
                 if (order.items > 0 && order.picked === order.items) {
-                    // Use a timeout to allow the modal to close before showing the animation
-                    setTimeout(() => showCompletionAnimation(orderId), 100);
+                    setTimeout(() => showAnimation('completion-animation', `Order ${orderId} Complete!`), 100);
                 }
                 
                 const parentBin = currentSelectedItem.closest('.bin-location');
@@ -549,9 +573,20 @@
                 updateOrderLegend();
                 checkAllTasksFinished();
             }
+            
+            // Initial setup
+            mainDoneBtn.addEventListener('click', () => {
+                if(mainDoneBtn.disabled) return;
+
+                mainDoneBtn.disabled = true;
+                showAnimation('new-order-animation');
+
+                setTimeout(generateNewWave, 2500);
+            });
 
             modal.addEventListener('click', e => { if (e.target.id === 'pickup-modal') closeModal(); });
-
+            
+            generateInitialData();
             initializeApp();
         });
     </script>
