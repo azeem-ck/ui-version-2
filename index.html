@@ -52,7 +52,6 @@
         }
         .item-inactive { background-color: var(--color-inactive-bg); }
         
-        /* --- MODIFIED: Use order-specific colors for waiting items --- */
         .item-waiting { 
             border: 2px dashed var(--color-waiting-border) !important; 
         }
@@ -66,7 +65,7 @@
             border: 2px solid var(--color-finished-border) !important; 
         }
 
-        /* --- NEW: Order Color Styling --- */
+        /* --- Order Color Styling --- */
         .order-1 { background-color: var(--order-1-bg); }
         .order-2 { background-color: var(--order-2-bg); }
         .order-3 { background-color: var(--order-3-bg); }
@@ -82,11 +81,11 @@
 
         /* --- Bin Location Border States --- */
         .bin-location { border-width: 2px; transition: border-color 0.3s; }
-        .border-waiting { border-color: #D1D5DB; /* Lighter Grey for default */ }
+        .border-waiting { border-color: #D1D5DB; }
         .border-selected-order-1 { border-color: var(--order-1-border) !important; }
         .border-selected-order-2 { border-color: var(--order-2-border) !important; }
         .border-selected-order-3 { border-color: var(--order-3-border) !important; }
-        .border-finished { border-color: #01DC82; /* Green */ }
+        .border-finished { border-color: #01DC82; }
 
         /* General Styles */
         .nav-link { color: var(--primary-dark); }
@@ -99,7 +98,7 @@
             cursor: not-allowed;
         }
 
-        /* --- NEW: Order Legend --- */
+        /* --- Order Legend --- */
         .order-legend-item {
             display: flex;
             align-items: center;
@@ -108,17 +107,25 @@
             border: 1px solid transparent;
             transition: all 0.2s ease-in-out;
         }
-        .order-legend-item.is-active {
-            background-color: white;
-            border-color: #A5B4FC;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        }
         .order-color-dot {
             width: 16px;
             height: 16px;
             border-radius: 50%;
             margin-right: 12px;
             border: 2px solid rgba(0,0,0,0.1);
+        }
+
+        /* --- NEW: Completion Animation --- */
+        #completion-animation.show {
+            display: flex;
+            animation: fade-in-out 2.5s ease-in-out forwards;
+        }
+
+        @keyframes fade-in-out {
+            0% { opacity: 0; transform: scale(0.8); }
+            20% { opacity: 1; transform: scale(1); }
+            80% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.8); }
         }
     </style>
 </head>
@@ -150,7 +157,7 @@
                     </div>
                 </div>
             </div>
-             <!-- NEW: Active Orders Bar -->
+             <!-- Active Orders Bar -->
             <div class="bg-gray-50 border-t border-gray-200">
                 <div class="container mx-auto px-4 py-3">
                     <h3 class="text-xs font-bold uppercase text-gray-500 mb-2">Active Orders</h3>
@@ -195,7 +202,6 @@
                     <div>
                         <h3 id="modal-item-name" class="text-2xl font-bold text-gray-800"></h3>
                         <p class="text-sm text-gray-500 font-semibold">Partition: <span id="modal-partition-number"></span></p>
-                        <!-- MODIFIED: Order ID now has a color dot -->
                         <p class="text-sm text-gray-500 flex items-center">Order ID: 
                             <span id="modal-order-dot" class="inline-block w-3 h-3 rounded-full mx-2"></span>
                             <span id="modal-order-id"></span>
@@ -223,6 +229,11 @@
         </div>
     </div>
 
+    <!-- NEW: Completion Animation Container -->
+    <div id="completion-animation" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-[100]">
+        <div id="completion-text" class="text-white text-5xl font-bold p-12 bg-green-500 rounded-2xl shadow-2xl transform"></div>
+    </div>
+
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -231,7 +242,6 @@
             const orderLegend = document.getElementById('order-legend');
             let currentSelectedItem = null;
             
-            // --- NEW: Multi-order data structure ---
             const orderData = {
                 "ORD-A1B2": { colorClass: 'order-1', name: "Order A1B2", items: 0, picked: 0 },
                 "ORD-C3D4": { colorClass: 'order-2', name: "Order C3D4", items: 0, picked: 0 },
@@ -294,12 +304,15 @@
                 Object.keys(orderData).forEach(orderId => {
                     const order = orderData[orderId];
                     const legendItem = document.createElement('div');
+                    const isComplete = order.items > 0 && order.picked === order.items;
+                    
                     legendItem.className = 'order-legend-item';
                     legendItem.innerHTML = `
                         <div class="order-color-dot ${order.colorClass}"></div>
                         <div>
                             <div class="font-semibold text-sm text-primary-darkest">${order.name}</div>
                             <div class="text-xs text-gray-500">Lines: ${order.picked} of ${order.items}</div>
+                            ${isComplete ? '<div class="font-bold text-green-600 text-xs mt-1">COMPLETED</div>' : ''}
                         </div>
                     `;
                     orderLegend.appendChild(legendItem);
@@ -320,6 +333,21 @@
                     mainDoneBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
                     mainDoneBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
                 }
+            }
+            
+            // --- NEW: Function to show completion animation ---
+            function showCompletionAnimation(orderId) {
+                const animationContainer = document.getElementById('completion-animation');
+                const animationText = document.getElementById('completion-text');
+                
+                animationText.textContent = `Order ${orderId} Complete!`;
+                animationContainer.classList.add('show');
+                animationContainer.classList.remove('hidden');
+
+                setTimeout(() => {
+                    animationContainer.classList.remove('show');
+                    animationContainer.classList.add('hidden');
+                }, 2400); // Should be slightly less than animation duration
             }
 
             function openPickupModal(item) {
@@ -348,7 +376,6 @@
                 document.getElementById('modal-order-id').textContent = orderId;
                 document.getElementById('modal-sku-id').textContent = `SKU-${Math.random().toString(36).slice(2, 11).toUpperCase()}`;
                 
-                // Style modal elements with order color
                 const modalOrderDot = document.getElementById('modal-order-dot');
                 modalOrderDot.className = `inline-block w-3 h-3 rounded-full mx-2 ${order.colorClass}`;
                 
@@ -357,7 +384,6 @@
                 const minusBtn = document.getElementById('modal-minus-btn');
                 const counterDisplay = document.getElementById('modal-quantity-counter');
                 
-                // --- FIX: Correctly apply styles using CSS variables ---
                 qtyContainer.style.borderColor = `var(--${order.colorClass}-border)`;
                 qtyContainer.style.backgroundColor = `var(--${order.colorClass}-bg)`;
                 counterDisplay.style.color = `var(--${order.colorClass}-border)`;
@@ -365,7 +391,6 @@
                 minusBtn.style.backgroundColor = `var(--${order.colorClass}-border)`;
                 plusBtn.style.color = 'white';
                 minusBtn.style.color = 'white';
-
 
                 const compartmentView = document.getElementById('modal-compartment-view');
                 if (binGrid) {
@@ -431,6 +456,13 @@
                 
                 orderData[orderId].picked++;
                 
+                // --- MODIFIED: Check for order completion ---
+                const order = orderData[orderId];
+                if (order.items > 0 && order.picked === order.items) {
+                    // Use a timeout to allow the modal to close before showing the animation
+                    setTimeout(() => showCompletionAnimation(orderId), 100);
+                }
+                
                 const parentBin = currentSelectedItem.closest('.bin-location');
                 currentSelectedItem = null;
                 modal.classList.add('hidden');
@@ -444,7 +476,6 @@
                 binsGrid.innerHTML = '';
                 let hasSetInitialSelected = false;
                 
-                // Reset order counts
                 Object.keys(orderData).forEach(id => {
                     orderData[id].items = 0;
                     orderData[id].picked = 0;
