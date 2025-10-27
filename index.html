@@ -1,39 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Order Warehouse Pickup UI</title>
+    <title>Tote Inwarding UI</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
     <style>
-        /* Define custom color variables */
         :root {
             --bg-main: #F0EFE9;
             --primary-dark: #003C3C;
             --primary-darkest: #0D2021;
-            
-            /* State Colors */
-            --color-waiting-bg: #D1D5DB;      /* Grey */
-            --color-waiting-border: #6B7280;  /* Darker Grey */
-            --color-selected-bg: #3B82F6;     /* Blue */
-            --color-selected-border: #1D4ED8; /* Darker Blue */
-            --color-finished-bg: #01DC82;     /* Green */
-            --color-finished-border: #003C3C; /* Dark Teal */
-            --color-inactive-bg: #e5e7eb;
-
-            /* Order-specific Colors */
-            --order-1-bg: #FEF3C7; /* Amber 100 */
-            --order-1-border: #FBBF24; /* Amber 400 */
-            --order-2-bg: #DBEAFE; /* Blue 200 */
-            --order-2-border: #60A5FA; /* Blue 400 */
-            --order-3-bg: #FCE7F3; /* Pink 100 */
-            --order-3-border: #F472B6; /* Pink 400 */
+            --color-waiting-bg: #FFFFFF;
+            --color-waiting-border: #6B7280;
+            --color-filled-bg: #D1FAE5;
+            --color-filled-border: #065F46;
+            --color-disabled-bg: #E5E7EB;
+            --color-disabled-border: #9CA3AF;
         }
 
         body {
@@ -41,94 +29,300 @@
             background-color: var(--bg-main);
             color: var(--primary-darkest);
         }
-        
-        /* --- Compartment Item States --- */
-        .selectable-item { 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
+
+        /* --- Navigation --- */
+        .nav-link {
+            color: var(--primary-dark);
+        }
+
+        .nav-link:hover {
+            color: var(--primary-darkest);
+            background-color: #e5e7eb;
+        }
+
+        .nav-link-active {
+            background-color: var(--primary-dark);
+            color: white;
+        }
+
+        /* --- Inwarding Slot States --- */
+        .inwarding-slot {
+            transition: all 0.3s ease;
             position: relative;
-            overflow: hidden;
-        }
-        .item-inactive { background-color: var(--color-inactive-bg); }
-        
-        .item-waiting { 
-            border: 2px dashed var(--color-waiting-border) !important; 
-        }
-        .item-selected { 
-            border: 4px solid var(--color-selected-border) !important; 
-            transform: scale(1.05);
-            z-index: 10;
-        }
-        .item-finished { 
-            background-color: var(--color-finished-bg) !important; 
-            border: 2px solid var(--color-finished-border) !important; 
         }
 
-        /* --- Order Color Styling --- */
-        .order-1 { background-color: var(--order-1-bg); }
-        .order-2 { background-color: var(--order-2-bg); }
-        .order-3 { background-color: var(--order-3-bg); }
+        .slot-empty {
+            background-color: var(--color-waiting-bg);
+            border: 2px dashed var(--color-waiting-border);
+            cursor: pointer;
+        }
 
-        .order-1.item-selected { border-color: var(--order-1-border); }
-        .order-2.item-selected { border-color: var(--order-2-border); }
-        .order-3.item-selected { border-color: var(--order-3-border); }
+        .slot-empty:hover {
+            transform: scale(1.03);
+            border-color: var(--primary-dark);
+        }
 
-
-        /* Icon Visibility */
-        .selectable-item .icon { display: none; width: 40%; height: 40%; }
-        .item-finished .icon-finished { display: block; color: var(--primary-dark); }
-
-        /* --- Bin Location Border States --- */
-        .bin-location { border-width: 2px; transition: border-color 0.3s; }
-        .border-waiting { border-color: #D1D5DB; }
-        .border-selected-order-1 { border-color: var(--order-1-border) !important; }
-        .border-selected-order-2 { border-color: var(--order-2-border) !important; }
-        .border-selected-order-3 { border-color: var(--order-3-border) !important; }
-        .border-finished { border-color: #01DC82; }
-
-        /* General Styles */
-        .nav-link { color: var(--primary-dark); }
-        .nav-link:hover { color: var(--primary-darkest); background-color: #e5e7eb; }
-        .nav-link-active { background-color: var(--primary-dark); color: white; }
-
-        /* Modal Styles */
-        #pickup-modal .disabled-button {
-            background-color: #9CA3AF;
+        .slot-filled {
+            background-color: var(--color-filled-bg);
+            border: 2px solid var(--color-filled-border);
             cursor: not-allowed;
         }
 
-        /* --- Order Legend --- */
-        .order-legend-item {
+        .slot-disabled {
+            background-color: var(--color-disabled-bg);
+            border: 2px solid var(--color-disabled-border);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        /* --- Tote Type Popover --- */
+        #tote-type-popover {
+            transform-origin: top center;
+            transition: all 0.2s ease-out;
+            /* Arrow pseudo-element */
+        }
+
+        #tote-type-popover::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 10px solid white;
+            /* Matches popover bg */
+        }
+
+        .tote-type-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 100px;
+            border: 2px solid #D1D5DB;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            font-size: 0.75rem;
+            color: #4B5563;
+        }
+
+        .tote-type-btn:hover {
+            border-color: var(--primary-dark);
+            background-color: #F9FAFB;
+            transform: translateY(-2px);
+            color: var(--primary-dark);
+        }
+
+        .tote-icon-wrapper {
+            width: 50px;
+            height: 70px;
+            border: 2px solid #9CA3AF;
+            border-radius: 4px;
+            display: grid;
+            background-color: #F3F4F6;
+        }
+
+        .tote-icon-1 {
+            grid-template-columns: 1fr;
+        }
+
+        .tote-icon-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .tote-icon-4 {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+        }
+
+        .tote-icon-2 div {
+            border-left: 2px solid #9CA3AF;
+        }
+
+        .tote-icon-2 div:first-child {
+            border-left: 0;
+        }
+
+        .tote-icon-4 div {
+            border-left: 2px solid #9CA3AF;
+            border-top: 2px solid #9CA3AF;
+        }
+
+        .tote-icon-4 div:nth-child(1),
+        .tote-icon-4 div:nth-child(2) {
+            border-top: 0;
+        }
+
+        .tote-icon-4 div:nth-child(1),
+        .tote-icon-4 div:nth-child(3) {
+            border-left: 0;
+        }
+
+
+        /* --- Modal Panes --- */
+        #inwarding-modal-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 24px;
+        }
+
+        .modal-pane {
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            background-color: #F9FAFB;
+            border-radius: 12px;
+            border: 1px solid #E5E7EB;
+        }
+
+        /* Left Pane: Form */
+        .partition-form-group {
+            background-color: white;
+            border-radius: 8px;
+            border: 1px solid #D1D5DB;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .partition-form-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #6B7280;
+            margin-bottom: 4px;
+        }
+
+        .partition-form-group input {
+            width: 100%;
+            border-radius: 6px;
+            border: 1px solid #D1D5DB;
+            padding: 8px 10px;
+            font-size: 0.875rem;
+        }
+
+        .partition-form-group input:focus {
+            outline: none;
+            border-color: var(--primary-dark);
+            box-shadow: 0 0 0 2px rgba(0, 60, 60, 0.2);
+        }
+
+
+        /* Center Pane: Visualization */
+        .tote-vis-container {
+            width: 100%;
+            max-width: 280px;
+            /* Totes are portrait */
+            aspect-ratio: 2 / 3;
+            border: 4px solid var(--primary-darkest);
+            border-radius: 8px;
+            margin: auto;
+            display: grid;
+            background-color: #E5E7EB;
+        }
+
+        .tote-vis-1 {
+            grid-template-columns: 1fr;
+        }
+
+        .tote-vis-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .tote-vis-4 {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+        }
+
+        .tote-vis-partition {
             display: flex;
             align-items: center;
-            padding: 8px 12px;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+
+        .tote-vis-2 .tote-vis-partition:first-child {
+            border-right: 4px solid var(--primary-darkest);
+        }
+
+        .tote-vis-4 .tote-vis-partition:nth-child(1) {
+            border-bottom: 4px solid var(--primary-darkest);
+        }
+
+        .tote-vis-4 .tote-vis-partition:nth-child(2) {
+            border-left: 4px solid var(--primary-darkest);
+            border-bottom: 4px solid var(--primary-darkest);
+        }
+
+        .tote-vis-4 .tote-vis-partition:nth-child(3) {
+            border-right: 4px solid var(--primary-darkest);
+        }
+
+
+        /* Right Pane: Action */
+        .placement-animation-container {
+            height: 200px;
+            background: linear-gradient(to top, #D1D5DB 30%, transparent 30%);
+            border: 2px solid #9CA3AF;
             border-radius: 8px;
-            border: 1px solid transparent;
-            transition: all 0.2s ease-in-out;
-        }
-        .order-color-dot {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            margin-right: 12px;
-            border: 2px solid rgba(0,0,0,0.1);
+            margin-top: auto;
+            margin-bottom: auto;
+            position: relative;
+            overflow: hidden;
         }
 
-        /* --- Animations --- */
-        .animation-popup.show {
+        .placement-animation-tote {
+            width: 60%;
+            height: 40%;
+            background-color: var(--primary-dark);
+            border: 3px solid var(--primary-darkest);
+            border-radius: 8px;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: place-tote 3s ease-in-out infinite;
             display: flex;
-            animation: fade-in-out 2.5s ease-in-out forwards;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
         }
 
-        @keyframes fade-in-out {
-            0% { opacity: 0; transform: scale(0.8); }
-            20% { opacity: 1; transform: scale(1); }
-            80% { opacity: 1; transform: scale(1); }
-            100% { opacity: 0; transform: scale(0.8); }
+        @keyframes place-tote {
+            0% {
+                top: -50%;
+            }
+
+            30% {
+                top: 55%;
+            }
+
+            /* Land and rest */
+            40% {
+                top: 50%;
+            }
+
+            60% {
+                top: 50%;
+            }
+
+            /* Pull up */
+            90% {
+                top: -50%;
+            }
+
+            100% {
+                top: -50%;
+            }
         }
     </style>
 </head>
+
 <body class="antialiased">
 
     <div id="root" class="flex flex-col h-screen">
@@ -137,32 +331,25 @@
             <div class="container mx-auto px-4">
                 <div class="flex items-center justify-between h-16">
                     <div class="flex items-center space-x-8">
-                        <img src="https://placehold.co/150x40/003C3C/FFFFFF?text=Cartesian+Kinetics" alt="Cartesian Kinetics Logo" class="h-10">
+                        <img src="https://placehold.co/150x40/003C3C/FFFFFF?text=Cartesian+Kinetics"
+                            alt="Cartesian Kinetics Logo" class="h-10">
                         <nav class="hidden md:flex items-center space-x-1">
-                            <a href="#" class="px-3 py-2 text-sm font-semibold rounded-md nav-link-active">Order Fulfillment</a>
-                            <a href="#" class="px-3 py-2 text-sm font-medium rounded-md nav-link">Inbounds</a>
+                            <a href="#" class="px-3 py-2 text-sm font-medium rounded-md nav-link">Order Fulfillment</a>
+                            <a href="#" class="px-3 py-2 text-sm font-semibold rounded-md nav-link-active">Inbounds</a>
                             <a href="#" class="px-3 py-2 text-sm font-medium rounded-md nav-link">Replenishment</a>
                             <a href="#" class="px-3 py-2 text-sm font-medium rounded-md nav-link">Cycle Count</a>
                         </nav>
                     </div>
                     <div class="flex items-center space-x-4">
                         <div class="text-right text-xs text-primary-dark">
-                            <div>03:18 PM Fri 2025</div>
+                            <div id="date-time">01:40 PM Thu 2025</div>
                             <div>John Doe</div>
                         </div>
                         <a href="#" class="cursor-pointer">
-                            <img src="https://placehold.co/40x40/EFEFEF/333333?text=JD" alt="User Avatar" class="w-10 h-10 rounded-full"
-                            onerror="this.onerror=null;this.src='https://placehold.co/40x40/EFEFEF/333333?text=JD';">
+                            <img src="https://placehold.co/40x40/EFEFEF/333333?text=JD" alt="User Avatar"
+                                class="w-10 h-10 rounded-full"
+                                onerror="this.onerror=null;this.src='https://placehold.co/40x40/EFEFEF/333333?text=JD';">
                         </a>
-                    </div>
-                </div>
-            </div>
-             <!-- Active Orders Bar -->
-            <div class="bg-gray-50 border-t border-gray-200">
-                <div class="container mx-auto px-4 py-3">
-                    <h3 class="text-xs font-bold uppercase text-gray-500 mb-2">Active Orders</h3>
-                    <div id="order-legend" class="flex items-center space-x-4">
-                        <!-- Order legend will be dynamically populated -->
                     </div>
                 </div>
             </div>
@@ -171,425 +358,336 @@
         <!-- Main Content -->
         <main class="flex-grow p-4 md:p-6">
             <div class="container mx-auto">
-                <h2 class="text-lg font-semibold text-primary-darkest mb-4">Pickup Items</h2>
-                <div id="bins-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-4">
-                    <!-- Bins will be dynamically populated by the script -->
-                </div>
-                 <!-- Done Button -->
-                <div class="mt-8 flex justify-end">
-                    <button id="main-done-btn" class="px-8 py-3 bg-gray-400 text-white font-semibold rounded-lg cursor-not-allowed" disabled>Done</button>
+                <h2 class="text-lg font-semibold text-primary-darkest mb-4">Select Slot for Tote Inwarding</h2>
+                <div id="inwarding-slots-grid"
+                    class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-4">
+                    <!-- Slots will be dynamically populated by the script -->
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Modal Dialog -->
-    <div id="pickup-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg">
-            <div class="p-6 grid grid-cols-2 gap-6">
-                <!-- Left Column: Images -->
-                <div class="space-y-4">
-                    <div id="modal-compartment-view" class="bg-gray-100 rounded-lg aspect-square flex items-center justify-center p-4">
-                        <!-- Compartment visualization will be injected here -->
-                    </div>
-                    <div>
-                        <img id="modal-sku-image" src="" alt="SKU Image" class="rounded-lg w-full aspect-square object-cover">
-                    </div>
+    <!-- Tote Type Popover -->
+    <div id="tote-type-popover"
+        class="hidden absolute z-20 w-80 bg-white rounded-lg shadow-xl p-4 transition-all scale-95 opacity-0"
+        style="min-width: 320px;">
+        <h4 class="text-center font-semibold text-sm mb-3 text-primary-darkest">Select Tote Type</h4>
+        <div class="flex justify-around space-x-2">
+            <!-- No Partition Button -->
+            <button class="tote-type-btn" onclick="selectToteType('1-partition')">
+                <div class="tote-icon-wrapper tote-icon-1 mb-1"></div>
+                No Partition
+            </button>
+            <!-- 2 Partition Button -->
+            <button class="tote-type-btn" onclick="selectToteType('2-partition')">
+                <div class="tote-icon-wrapper tote-icon-2 mb-1">
+                    <div></div>
+                    <div></div>
                 </div>
-
-                <!-- Right Column: Details & Actions -->
-                <div class="flex flex-col space-y-4">
-                    <div>
-                        <h3 id="modal-item-name" class="text-2xl font-bold text-gray-800"></h3>
-                        <p class="text-sm text-gray-500 font-semibold">Partition: <span id="modal-partition-number"></span></p>
-                        <p class="text-sm text-gray-500 flex items-center">Order ID: 
-                            <span id="modal-order-dot" class="inline-block w-3 h-3 rounded-full mx-2"></span>
-                            <span id="modal-order-id"></span>
-                        </p>
-                        <p class="text-sm text-gray-500">SKU ID: <span id="modal-sku-id"></span></p>
-                    </div>
-                    
-                    <div id="modal-qty-container" class="border-2 rounded-lg p-4 text-center">
-                        <p class="text-sm font-medium">PICKUP QUANTITY</p>
-                        <div class="flex items-center justify-center space-x-4 mt-2">
-                            <button id="modal-minus-btn" class="rounded-full w-8 h-8 flex items-center justify-center text-lg font-bold">-</button>
-                            <p id="modal-quantity-counter" class="text-3xl font-bold w-24"></p>
-                            <button id="modal-plus-btn" class="rounded-full w-8 h-8 flex items-center justify-center text-lg font-bold">+</button>
-                        </div>
-                    </div>
-
-                    <div class="flex-grow"></div>
-
-                    <div class="space-y-2">
-                         <button id="modal-flag-btn" class="w-full text-center py-3 px-4 bg-red-100 text-red-700 font-semibold rounded-lg hover:bg-red-200">Flag SKU</button>
-                         <button id="modal-done-btn" class="w-full text-center py-3 px-4 bg-gray-400 text-white font-semibold rounded-lg" disabled>Done</button>
-                    </div>
+                2 Partitions
+            </button>
+            <!-- 4 Partition Button -->
+            <button class="tote-type-btn" onclick="selectToteType('4-partition')">
+                <div class="tote-icon-wrapper tote-icon-4 mb-1">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
                 </div>
-            </div>
+                4 Partitions
+            </button>
         </div>
     </div>
 
-    <!-- Animation Containers -->
-    <div id="completion-animation" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-[100] animation-popup">
-        <div id="completion-text" class="text-white text-5xl font-bold p-12 bg-green-500 rounded-2xl shadow-2xl transform"></div>
-    </div>
-    <div id="new-order-animation" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-[100] animation-popup">
-        <div class="text-white text-5xl font-bold p-12 bg-yellow-400 rounded-2xl shadow-2xl transform">New order set</div>
+
+    <!-- Modal Dialog -->
+    <div id="inwarding-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-7xl p-8">
+            <!-- Main 3-Pane Content -->
+            <div id="inwarding-modal-content">
+
+                <!-- ===== LEFT PANE: DATA ENTRY ===== -->
+                <div class="modal-pane">
+                    <h2 class="text-xl font-bold text-center text-primary-darkest mb-4">Tote Details</h2>
+                    <div class="flex-grow overflow-y-auto pr-2">
+                        <!-- Shared Tote ID -->
+                        <div class="partition-form-group bg-gray-100">
+                            <label for="tote-id">Tote ID</label>
+                            <input type="text" id="tote-id" name="tote-id" placeholder="Scan or enter Tote ID">
+                        </div>
+                        <!-- Dynamic Partition Forms -->
+                        <div id="partition-forms-container">
+                            <!-- Forms will be injected here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== CENTER PANE: VISUALIZATION ===== -->
+                <div class="modal-pane">
+                    <h2 class="text-xl font-bold text-center text-primary-darkest mb-4">Tote Configuration</h2>
+                    <div id="tote-visualization-container" class="flex-grow flex items-center justify-center">
+                        <!-- Visualization will be injected here -->
+                    </div>
+                    <p class="text-sm font-semibold text-center text-gray-500 mt-2">
+                        Slot: <span id="modal-slot-id" class="font-bold text-primary-darkest"></span>
+                    </p>
+                </div>
+
+                <!-- ===== RIGHT PANE: ACTION ===== -->
+                <div class="modal-pane">
+                    <h2 class="text-xl font-bold text-center text-primary-darkest mb-4">Confirm Placement</h2>
+                    <!-- Placement Animation -->
+                    <div class="placement-animation-container">
+                        <div class="placement-animation-tote">TOTE</div>
+                    </div>
+                    <p class="text-sm font-semibold text-center text-gray-500 my-4">
+                        Place tote into the highlighted slot.
+                    </p>
+                    <!-- Action Buttons -->
+                    <div class="space-y-3 mt-auto">
+                        <button id="modal-done-btn"
+                            class="w-full text-center py-4 px-4 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 text-lg">Done</button>
+                        <p class="text-xs text-center text-red-700 font-medium">
+                            Acknowledge only after ensuring the tote is placed.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+            <!-- Close button in corner -->
+            <button onclick="closeInwardingModal()"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
     </div>
 
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const binsGrid = document.getElementById('bins-grid');
-            const modal = document.getElementById('pickup-modal');
-            const orderLegend = document.getElementById('order-legend');
-            const mainDoneBtn = document.getElementById('main-done-btn');
-            let currentSelectedItem = null;
-            
-            let orderData = {};
-            let binData = [];
+            const slotsGrid = document.getElementById('inwarding-slots-grid');
+            const modal = document.getElementById('inwarding-modal');
+            const popover = document.getElementById('tote-type-popover');
+            const dateTimeElement = document.getElementById('date-time');
+            const modalDoneBtn = document.getElementById('modal-done-btn');
 
-            function generateInitialData() {
-                orderData = {
-                    "ORD-A1B2": { colorClass: 'order-1', name: "Order A1B2", items: 0, picked: 0 },
-                    "ORD-C3D4": { colorClass: 'order-2', name: "Order C3D4", items: 0, picked: 0 },
-                    "ORD-E5F6": { colorClass: 'order-3', name: "Order E5F6", items: 0, picked: 0 },
-                };
-                binData = [
-                    { id: '1.1.1.', type: 'empty' }, { id: '2.1.1.', type: '2-compartment', items: [{ compartment: 0, orderId: "ORD-A1B2" }] }, { id: '3.1.1.', type: '1-compartment', items: [{ compartment: 0, orderId: "ORD-C3D4" }] }, { id: '4.1.1.', type: '4-compartment', items: [ { compartment: 0, orderId: "ORD-A1B2" }, { compartment: 1, orderId: "ORD-C3D4" }, { compartment: 2, orderId: "ORD-E5F6" }, { compartment: 3, orderId: "ORD-A1B2" } ] }, { id: '5.1.1.', type: '1-compartment', items: [{ compartment: 0, orderId: "ORD-E5F6", initialState: 'selected' }] }, { id: '6.1.1.', type: 'empty' }, { id: '7.1.1.', type: '2-compartment', items: [ { compartment: 0, orderId: "ORD-C3D4" }, { compartment: 1, orderId: "ORD-E5F6" } ] }, { id: '8.1.1.', type: 'empty' }, { id: '9.1.1.', type: '1-compartment', items: [{ compartment: 0, orderId: "ORD-A1B2", initialState: 'finished' }] }, { id: '10.1.1.', type: 'empty' }, { id: '11.1.1.', type: '4-compartment', items: [ { compartment: 1, orderId: "ORD-C3D4" }, { compartment: 2, orderId: "ORD-E5F6" } ] }, { id: '12.1.1.', type: 'empty' },
-                ];
+            // --- State --- //
+            let slotData = {};
+            let activePopoverSlotId = null;
+
+            // --- DATE & TIME --- //
+            function updateDateTime() {
+                const now = new Date();
+                const options = { weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: true };
+                const timeString = now.toLocaleTimeString('en-US', options).replace(' ', '');
+                const yearString = now.getFullYear();
+                dateTimeElement.textContent = `${timeString} ${now.toLocaleDateString('en-US', { weekday: 'short' })} ${yearString}`;
             }
-            
-            function generateNewWave() {
-                // 1. Generate new random orders
-                orderData = {};
-                const newOrderColors = ['order-1', 'order-2', 'order-3'];
-                for (let i = 0; i < 3; i++) {
-                    const randomId = `ORD-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-                    orderData[randomId] = { colorClass: newOrderColors[i], name: `Order ${randomId}`, items: 0, picked: 0 };
-                }
-                const newOrderIds = Object.keys(orderData);
 
-                // 2. Generate new random bin configurations
-                binData = [];
-                const binTypes = ['1-compartment', '2-compartment', '4-compartment', 'empty'];
+            // --- APP INITIALIZATION --- //
+            function initializeApp() {
+                slotsGrid.innerHTML = '';
                 for (let i = 1; i <= 12; i++) {
-                    const binLocationId = `${i}.1.1.`;
-                    const randomType = binTypes[Math.floor(Math.random() * binTypes.length)];
-                    const newBin = { id: binLocationId, type: randomType, items: [] };
+                    const slotId = `${i}.1.1.`;
+                    const isActive = i <= 4;
+                    let slotState;
 
-                    if (randomType !== 'empty') {
-                        let compartmentCount = 0;
-                        if (randomType === '1-compartment') compartmentCount = 1;
-                        if (randomType === '2-compartment') compartmentCount = 2;
-                        if (randomType === '4-compartment') compartmentCount = 4;
-
-                        for (let j = 0; j < compartmentCount; j++) {
-                            // 50% chance to place an item in a compartment
-                            if (Math.random() > 0.5) {
-                                const randomOrderId = newOrderIds[Math.floor(Math.random() * newOrderIds.length)];
-                                newBin.items.push({ compartment: j, orderId: randomOrderId });
-                            }
-                        }
+                    if (isActive) {
+                        slotState = slotData[slotId] ? slotData[slotId] : { status: 'empty' };
+                    } else {
+                        slotState = { status: 'disabled' };
                     }
-                    binData.push(newBin);
-                }
-                
-                // 3. Re-initialize the app with new data
-                initializeApp();
-            }
-            
-            function getIconSvg() {
-                return `<svg class="icon icon-finished" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-            }
+                    slotData[slotId] = slotState; // Ensure state is tracked
 
-            function updateBinState(binLocation) {
-                if (!binLocation) return;
-                const compartments = binLocation.querySelectorAll('.selectable-item');
-                const selectedItem = binLocation.querySelector('.item-selected');
-                const finishedItems = binLocation.querySelectorAll('.item-finished');
-                
-                binLocation.className = binLocation.className.replace(/border-selected-order-\d/g, '').trim();
-                binLocation.classList.remove('border-finished');
-                binLocation.classList.add('border-waiting');
+                    const slotWrapper = document.createElement('div');
+                    slotWrapper.id = `slot-${slotId}`;
+                    slotWrapper.className = `inwarding-slot rounded-lg p-3 flex flex-col aspect-[2/4] slot-${slotState.status}`;
+                    slotWrapper.dataset.slotId = slotId;
 
-                if (selectedItem) {
-                    const orderId = selectedItem.dataset.orderId;
-                    const colorClass = orderData[orderId].colorClass;
-                    binLocation.classList.remove('border-waiting');
-                    binLocation.classList.add(`border-selected-${colorClass.split('-')[1]}`);
-                } else if (compartments.length > 0 && compartments.length === finishedItems.length) {
-                    binLocation.classList.remove('border-waiting');
-                    binLocation.classList.add('border-finished');
+                    let innerHtml = '';
+                    if (slotState.status === 'filled') {
+                        innerHtml = `
+                    <div class="flex-grow flex flex-col items-center justify-center text-center">
+                        <svg class="w-12 h-12 text-green-700" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M10 15.172l9.192-9.193 1.415 1.414L10 18l-6.364-6.364 1.414-1.414z"/>
+                        </svg>
+                        <p class="text-sm font-semibold text-green-800 mt-2">${slotState.toteType || 'Filled'}</p>
+                    </div>`;
+                    } else {
+                        innerHtml = `<div class="flex-grow"></div>`;
+                    }
+                    slotWrapper.innerHTML = innerHtml + `<p class="text-xs text-center text-primary-dark mt-2">Slot:<br>${slotId}</p>`;
+
+                    slotsGrid.appendChild(slotWrapper);
+
+                    if (slotState.status === 'empty') {
+                        slotWrapper.addEventListener('click', () => showToteSelector(slotWrapper, slotId));
+                    }
                 }
             }
-            
-            function updateOrderLegend() {
-                orderLegend.innerHTML = '';
-                Object.keys(orderData).forEach(orderId => {
-                    const order = orderData[orderId];
-                    if (!order) return;
-                    const legendItem = document.createElement('div');
-                    const isComplete = order.items > 0 && order.picked === order.items;
-                    
-                    legendItem.className = 'order-legend-item';
-                    legendItem.innerHTML = `
-                        <div class="order-color-dot ${order.colorClass}"></div>
-                        <div>
-                            <div class="font-semibold text-sm text-primary-darkest">${order.name}</div>
-                            <div class="text-xs text-gray-500">Lines: ${order.picked} of ${order.items}</div>
-                            ${isComplete ? '<div class="font-bold text-green-600 text-xs mt-1">COMPLETED</div>' : ''}
-                        </div>
-                    `;
-                    orderLegend.appendChild(legendItem);
-                });
-            }
 
-            function checkAllTasksFinished() {
-                const allSelectableItems = document.querySelectorAll('.selectable-item');
-                const allFinishedItems = document.querySelectorAll('.item-finished');
-                
-                if (allSelectableItems.length > 0 && allSelectableItems.length === allFinishedItems.length) {
-                    mainDoneBtn.disabled = false;
-                    mainDoneBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-                    mainDoneBtn.classList.add('bg-green-500', 'hover:bg-green-600');
-                    mainDoneBtn.textContent = 'Done';
-                } else {
-                    mainDoneBtn.disabled = true;
-                    mainDoneBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
-                    mainDoneBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
-                    mainDoneBtn.textContent = 'Done';
+            // --- POPOVER LOGIC --- //
+            function showToteSelector(slotElement, slotId) {
+                if (activePopoverSlotId === slotId) {
+                    hideToteSelector();
+                    return;
                 }
-            }
-            
-            function showAnimation(type, text) {
-                const animationContainer = document.getElementById(type);
-                const animationText = animationContainer.querySelector('div');
-                
-                if(text) animationText.textContent = text;
-                animationContainer.classList.add('show');
-                animationContainer.classList.remove('hidden');
+                activePopoverSlotId = slotId;
 
+                // Position popover
+                const rect = slotElement.getBoundingClientRect();
+                popover.style.top = `${rect.bottom + window.scrollY + 10}px`; // 10px gap
+                popover.style.left = `${rect.left + window.scrollX + (rect.width / 2) - (popover.offsetWidth / 2)}px`;
+
+                // Show popover
+                popover.classList.remove('hidden');
                 setTimeout(() => {
-                    animationContainer.classList.remove('show');
-                    animationContainer.classList.add('hidden');
-                }, 2400); 
+                    popover.classList.remove('scale-95', 'opacity-0');
+                }, 10);
             }
 
-            function openPickupModal(item) {
-                currentSelectedItem = item;
-                const orderId = item.dataset.orderId;
-                const order = orderData[orderId];
-                
-                const parentBin = item.closest('.bin-location');
-                const binGrid = parentBin.querySelector('.grid');
+            function hideToteSelector() {
+                activePopoverSlotId = null;
+                popover.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    popover.classList.add('hidden');
+                }, 200);
+            }
 
-                let partitionNumber = 'N/A';
-                if (binGrid) {
-                    const allCompartments = Array.from(binGrid.children);
-                    const totalCompartments = allCompartments.length;
-                    const selectedIndex = allCompartments.indexOf(item);
+            // --- MODAL LOGIC --- //
+            window.selectToteType = (toteType) => {
+                const slotId = activePopoverSlotId;
+                if (!slotId) return;
 
-                    if (totalCompartments === 2) partitionNumber = [2, 1][selectedIndex];
-                    else if (totalCompartments === 4) partitionNumber = [2, 1, 3, 4][selectedIndex];
-                }
-                document.getElementById('modal-partition-number').textContent = partitionNumber;
+                hideToteSelector();
+                openInwardingModal(slotId, toteType);
+            }
 
-                const pickupQty = Math.floor(Math.random() * 12) + 1;
-                const randomSkuNum = Math.floor(Math.random() * 100) + 1;
-                document.getElementById('modal-item-name').textContent = `Industrial Widget ${randomSkuNum}`;
-                document.getElementById('modal-sku-image').src = `https://placehold.co/400x400/cccccc/333333?text=SKU-${randomSkuNum}`;
-                document.getElementById('modal-order-id').textContent = orderId;
-                document.getElementById('modal-sku-id').textContent = `SKU-${Math.random().toString(36).slice(2, 11).toUpperCase()}`;
-                
-                const modalOrderDot = document.getElementById('modal-order-dot');
-                modalOrderDot.className = `inline-block w-3 h-3 rounded-full mx-2 ${order.colorClass}`;
-                
-                const qtyContainer = document.getElementById('modal-qty-container');
-                const plusBtn = document.getElementById('modal-plus-btn');
-                const minusBtn = document.getElementById('modal-minus-btn');
-                const counterDisplay = document.getElementById('modal-quantity-counter');
-                
-                qtyContainer.style.borderColor = `var(--${order.colorClass}-border)`;
-                qtyContainer.style.backgroundColor = `var(--${order.colorClass}-bg)`;
-                counterDisplay.style.color = `var(--${order.colorClass}-border)`;
-                plusBtn.style.backgroundColor = `var(--${order.colorClass}-border)`;
-                minusBtn.style.backgroundColor = `var(--${order.colorClass}-border)`;
-                plusBtn.style.color = 'white';
-                minusBtn.style.color = 'white';
+            function openInwardingModal(slotId, toteType) {
+                document.getElementById('modal-slot-id').textContent = slotId;
 
-                const compartmentView = document.getElementById('modal-compartment-view');
-                if (binGrid) {
-                    const binGridClone = binGrid.cloneNode(true);
-                    binGridClone.classList.add('h-full');
-                    const allOriginalItems = binGrid.children;
-                    const selectedIndex = Array.from(allOriginalItems).indexOf(item);
-                    
-                    Array.from(binGridClone.children).forEach((clone, index) => {
-                        const originalItem = allOriginalItems[index];
-                        if (originalItem.classList.contains('selectable-item')) {
-                             clone.className = `rounded-md ${originalItem.dataset.orderColorClass}`;
-                        } else {
-                             clone.className = 'rounded-md item-inactive';
-                        }
-                       
-                        if (index === selectedIndex) {
-                            clone.classList.add('!ring-4', '!ring-offset-2', '!ring-blue-500');
-                        }
-                    });
-                    
-                    compartmentView.innerHTML = '';
-                    compartmentView.appendChild(binGridClone);
+                // --- 1. Build Left Pane (Forms) ---
+                const formsContainer = document.getElementById('partition-forms-container');
+                formsContainer.innerHTML = ''; // Clear previous
+                let partitionCount = 0;
+                let partitionLabels = [];
+
+                if (toteType === '1-partition') {
+                    partitionCount = 1;
+                    partitionLabels = ['Partition 1'];
+                } else if (toteType === '2-partition') {
+                    partitionCount = 2;
+                    partitionLabels = ['Partition 2 (Left)', 'Partition 1 (Right)'];
+                } else if (toteType === '4-partition') {
+                    partitionCount = 4;
+                    partitionLabels = ['Partition 2 (Top-Left)', 'Partition 1 (Top-Right)', 'Partition 3 (Bottom-Left)', 'Partition 4 (Bottom-Right)'];
                 }
 
-                let currentCount = 0;
-                const doneBtn = document.getElementById('modal-done-btn');
+                for (let i = 0; i < partitionCount; i++) {
+                    const label = partitionLabels[i] || `Partition ${i + 1}`;
+                    const formHtml = `
+                <div class="partition-form-group">
+                    <p class="font-semibold text-sm text-primary-darkest mb-3">${label}</p>
+                    <div>
+                        <label for="sku-id-${i}">SKU ID</label>
+                        <input type="text" id="sku-id-${i}" name="sku-id-${i}" placeholder="Scan or enter SKU">
+                    </div>
+                    <div class="mt-2">
+                        <label for="unit-count-${i}">Unit Count</label>
+                        <input type="number" id="unit-count-${i}" name="unit-count-${i}" placeholder="Enter quantity" min="0">
+                    </div>
+                </div>`;
+                    formsContainer.innerHTML += formHtml;
+                }
+                if (partitionCount === 1) {
+                    // Hide the "Partition 1" title if there's only one
+                    formsContainer.querySelector('.partition-form-group p').classList.add('hidden');
+                }
 
-                const updateCounter = () => {
-                    counterDisplay.textContent = `${currentCount}/${pickupQty}`;
-                    const isDone = currentCount === pickupQty;
-                    doneBtn.disabled = !isDone;
-                    doneBtn.classList.toggle('disabled-button', !isDone);
-                    doneBtn.classList.toggle('bg-gray-400', !isDone);
-                    doneBtn.classList.toggle('bg-green-500', isDone);
-                };
 
-                plusBtn.onclick = () => { if (currentCount < pickupQty) { currentCount++; updateCounter(); } };
-                minusBtn.onclick = () => { if (currentCount > 0) { currentCount--; updateCounter(); } };
-                doneBtn.onclick = () => { if (currentCount === pickupQty) finishItemSelection(); };
+                // --- 2. Build Center Pane (Visualization) ---
+                const visContainer = document.getElementById('tote-visualization-container');
+                let visHtml = '';
+                if (toteType === '1-partition') {
+                    visHtml = `
+                <div class="tote-vis-container tote-vis-1">
+                    <div class="tote-vis-partition">1</div>
+                </div>`;
+                } else if (toteType === '2-partition') {
+                    visHtml = `
+                <div class="tote-vis-container tote-vis-2">
+                    <div class="tote-vis-partition">2</div>
+                    <div class="tote-vis-partition">1</div>
+                </div>`;
+                } else if (toteType === '4-partition') {
+                    visHtml = `
+                <div class="tote-vis-container tote-vis-4">
+                    <div class="tote-vis-partition">2</div>
+                    <div class="tote-vis-partition">1</div>
+                    <div class="tote-vis-partition">3</div>
+                    <div class="tote-vis-partition">4</div>
+                </div>`;
+                }
+                visContainer.innerHTML = visHtml;
 
-                updateCounter();
+                // --- 3. Setup Right Pane (Action) ---
+                // Clear old onclick handler
+                modalDoneBtn.onclick = null;
+                // Add new one, capturing current state
+                modalDoneBtn.onclick = () => confirmInwarding(slotId, toteType);
+
+                // --- 4. Show Modal ---
                 modal.classList.remove('hidden');
             }
 
-            function closeModal() {
-                if (currentSelectedItem) {
-                    currentSelectedItem.classList.remove('item-selected');
-                    currentSelectedItem.classList.add('item-waiting');
-                    updateBinState(currentSelectedItem.closest('.bin-location'));
-                    currentSelectedItem = null;
-                }
+            window.closeInwardingModal = () => {
                 modal.classList.add('hidden');
+                activePopoverSlotId = null; // Ensure this is cleared
             }
-            
-            function finishItemSelection() {
-                if (!currentSelectedItem) return;
-                const orderId = currentSelectedItem.dataset.orderId;
-                
-                currentSelectedItem.classList.remove('item-selected', 'item-waiting');
-                currentSelectedItem.classList.add('item-finished');
-                currentSelectedItem.innerHTML = getIconSvg();
-                
-                orderData[orderId].picked++;
-                
-                const order = orderData[orderId];
-                if (order.items > 0 && order.picked === order.items) {
-                    setTimeout(() => showAnimation('completion-animation', `Order ${orderId} Complete!`), 100);
+
+            function confirmInwarding(slotId, toteType) {
+                // In a real app, you'd collect and validate form data here
+                // For example:
+                // const toteId = document.getElementById('tote-id').value;
+                // if (!toteId) {
+                //   alert("Tote ID is required!"); // Use a proper modal alert, not window.alert
+                //   return;
+                // }
+
+                // Update state
+                slotData[slotId] = {
+                    status: 'filled',
+                    toteType: toteType,
+                    // ... save form data here ...
+                };
+
+                // Close modal and re-render grid
+                closeInwardingModal();
+                initializeApp(); // Re-render the entire grid to show the new state
+            }
+
+
+            // --- GLOBAL EVENT LISTENERS --- //
+            // Close popover if clicking outside
+            document.addEventListener('click', (e) => {
+                if (!popover.classList.contains('hidden') && !popover.contains(e.target) && !e.target.closest('.inwarding-slot')) {
+                    hideToteSelector();
                 }
-                
-                const parentBin = currentSelectedItem.closest('.bin-location');
-                currentSelectedItem = null;
-                modal.classList.add('hidden');
-                
-                updateBinState(parentBin);
-                updateOrderLegend();
-                checkAllTasksFinished();
-            }
-
-            function initializeApp() {
-                binsGrid.innerHTML = '';
-                let hasSetInitialSelected = false;
-                
-                Object.keys(orderData).forEach(id => {
-                    orderData[id].items = 0;
-                    orderData[id].picked = 0;
-                });
-
-                binData.forEach(data => {
-                    const binWrapper = document.createElement('div');
-                    if (data.type === 'empty') {
-                        binWrapper.className = 'bg-white border border-gray-300 rounded-lg p-3 flex flex-col aspect-[2/4]';
-                        binWrapper.innerHTML = `<div class="flex-grow"></div>`;
-                    } else {
-                        binWrapper.className = 'bin-location bg-white rounded-lg p-1 flex flex-col aspect-[2/4] border-waiting';
-                        let gridClass = '', compartmentCount = 0;
-                        if (data.type === '1-compartment') { gridClass = 'grid-cols-1 grid-rows-1'; compartmentCount = 1; }
-                        if (data.type === '2-compartment') { gridClass = 'grid-cols-2 grid-rows-1'; compartmentCount = 2; }
-                        if (data.type === '4-compartment') { gridClass = 'grid-cols-2 grid-rows-2'; compartmentCount = 4; }
-                        
-                        let compartmentsHtml = '';
-                        for (let i = 0; i < compartmentCount; i++) {
-                            const itemData = data.items.find(item => item.compartment === i);
-                            if (itemData) {
-                                const order = orderData[itemData.orderId];
-                                order.items++;
-
-                                let stateClass = 'item-waiting';
-                                if (itemData.initialState === 'selected' && !hasSetInitialSelected) {
-                                    stateClass = 'item-selected';
-                                    hasSetInitialSelected = true;
-                                }
-                                if (itemData.initialState === 'finished') {
-                                    stateClass = 'item-finished';
-                                    order.picked++;
-                                }
-                                
-                                compartmentsHtml += `<div class="rounded-md cursor-pointer transition-all selectable-item ${stateClass} ${order.colorClass}" data-order-id="${itemData.orderId}" data-order-color-class="${order.colorClass}">${stateClass === 'item-finished' ? getIconSvg() : ''}</div>`;
-                            } else {
-                                compartmentsHtml += `<div class="rounded-md item-inactive"></div>`;
-                            }
-                        }
-                        binWrapper.innerHTML = `<div class="flex-grow grid ${gridClass} gap-1">${compartmentsHtml}</div>`;
-                    }
-                    binWrapper.innerHTML += `<p class="text-xs text-center text-primary-dark mt-2">Bin Location:<br>${data.id}</p>`;
-                    binsGrid.appendChild(binWrapper);
-                    if (data.type !== 'empty') updateBinState(binWrapper);
-                });
-
-                document.querySelectorAll('.selectable-item').forEach(item => {
-                    item.addEventListener('click', () => {
-                        if (item.classList.contains('item-finished') || item === currentSelectedItem) {
-                            return;
-                        }
-
-                        if(currentSelectedItem) {
-                           closeModal();
-                        }
-                        
-                        const previouslySelected = document.querySelector('.item-selected');
-                        if (previouslySelected) {
-                            previouslySelected.classList.remove('item-selected');
-                            previouslySelected.classList.add('item-waiting');
-                            updateBinState(previouslySelected.closest('.bin-location'));
-                        }
-
-                        item.classList.remove('item-waiting');
-                        item.classList.add('item-selected');
-                        updateBinState(item.closest('.bin-location'));
-                        openPickupModal(item);
-                    });
-                });
-                
-                updateOrderLegend();
-                checkAllTasksFinished();
-            }
-            
-            // Initial setup
-            mainDoneBtn.addEventListener('click', () => {
-                if(mainDoneBtn.disabled) return;
-
-                mainDoneBtn.disabled = true;
-                showAnimation('new-order-animation');
-
-                setTimeout(generateNewWave, 2500);
             });
 
-            modal.addEventListener('click', e => { if (e.target.id === 'pickup-modal') closeModal(); });
-            
-            generateInitialData();
+            // Close modal if clicking on backdrop
+            modal.addEventListener('click', e => { if (e.target.id === 'inwarding-modal') closeInwardingModal(); });
+
+            // --- START APP --- //
             initializeApp();
+            updateDateTime();
+            setInterval(updateDateTime, 60000); // Update every minute
         });
     </script>
 
 </body>
+
 </html>
